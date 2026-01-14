@@ -205,7 +205,8 @@ await ticketChannel.send({
                 categoryInfo.requirements.map(req => `• ${req}`).join('\n') + '\n\n' +
                 `*Response time may vary. Please be patient.*`
             )
-            .setColor(config.colors.danger)
+                // Cambiado a color morado (primary)
+                .setColor(config.colors.primary)
             .setThumbnail(user.displayAvatarURL({ dynamic: true }))
             .addFields([
                 {
