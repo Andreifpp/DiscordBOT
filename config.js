@@ -55,6 +55,24 @@ module.exports = {
     const error = envOrFile(['ERROR_COLOR'], ['colors.error', 'error'], null) || fc.error || fc.danger || danger;
     const warning = envOrFile(['WARNING_COLOR'], ['colors.warning', 'warning'], fc.warning || '#ffd166');
     const secondary = envOrFile(['SECONDARY_COLOR'], ['colors.secondary', 'secondary'], fc.secondary || '#c77dff');
-    return { primary, success, danger, error, warning, secondary };
+    // Resolver: convert hex color strings like '#rrggbb' to numeric color (discord expects number or array)
+    const parseColor = (val) => {
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        const s = val.trim();
+        const hex = s.startsWith('#') ? s.slice(1) : (s.startsWith('0x') ? s.slice(2) : s);
+        if (/^[0-9A-Fa-f]{6}$/.test(hex)) return parseInt(hex, 16);
+      }
+      return null;
+    };
+
+    const p = parseColor(primary) ?? parseColor('#9d4edd');
+    const s = parseColor(success) ?? parseColor('#2ecc71');
+    const d = parseColor(danger) ?? parseColor('#e74c3c');
+    const e = parseColor(error) ?? d;
+    const w = parseColor(warning) ?? parseColor('#ffd166');
+    const sec = parseColor(secondary) ?? parseColor('#c77dff');
+
+    return { primary: p, success: s, danger: d, error: e, warning: w, secondary: sec };
   })(),
 };
