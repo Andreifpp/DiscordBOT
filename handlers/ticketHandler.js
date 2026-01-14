@@ -162,12 +162,15 @@ class TicketHandler {
             const ticketButtons = this.createTicketButtons();
 
             // Enviar mensaje en el ticket
-            await ticketChannel.send({
-                const supportMention = config.supportRoleId ? `<@&${config.supportRoleId}>` : ''; ...
-                content: `${user} ${supportMention ? `| ${supportMention}` : ''}`,
-                embeds: [ticketEmbed],
-                components: [ticketButtons]
-            });
+            // ✅ definir ANTES del send
+const supportMention = config.supportRoleId ? `<@&${config.supportRoleId}>` : '';
+
+// Enviar mensaje en el ticket
+await ticketChannel.send({
+  content: `${user}${supportMention ? ` | ${supportMention}` : ''}`,
+  embeds: [ticketEmbed],
+  components: [ticketButtons]
+});
 
             // Confirmar creación
             await interaction.editReply({
