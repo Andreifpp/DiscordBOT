@@ -1,7 +1,12 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits, StringSelectMenuBuilder } = require('discord.js');
 const config = require('../config');
 
-const ALLOWED_CLOSE_ROLES = new Set((config.allowedCloseRoles || []).map(String));
+const ALLOWED_CLOSE_ROLES = new Set(
+  [
+    ...(config.allowedCloseRoles || []),
+    config.supportRoleId, // ✅ permitir rol soporte por defecto
+  ].filter(Boolean).map(String)
+);
 
 class TicketHandler {
     static async handleInteraction(interaction) {
@@ -45,9 +50,14 @@ class TicketHandler {
     }
 
     static hasClosePermission(member) {
-        if (!member) return false;
-        return member.roles.cache.some(r => ALLOWED_CLOSE_ROLES.has(String(r.id)));
-    }
+  if (!member) return false;
+
+  // ✅ Admin siempre puede
+  if (member.permissions?.has(PermissionFlagsBits.Administrator)) return true;
+
+  // ✅ Rol permitido (incluye soporte)
+  return member.roles.cache.some(r => ALLOWED_CLOSE_ROLES.has(String(r.id)));
+}
 
     static async createTicket(interaction) {
         const category = interaction.values[0];
@@ -116,7 +126,7 @@ class TicketHandler {
             };
 
             // Añadir overwrite para el rol de soporte solo si existe
-            const supportRole = guild.roles.cache.get(config.supportRole);
+            const supportRole = guild.roles.cache.get(config.supportRoleId);
             if (supportRole) {
                 channelOptions.permissionOverwrites.push({
                     id: supportRole.id,
@@ -153,7 +163,8 @@ class TicketHandler {
 
             // Enviar mensaje en el ticket
             await ticketChannel.send({
-                content: `${user} | <@&${config.supportRole}>`,
+                const supportMention = config.supportRoleId ? `<@&${config.supportRoleId}>` : ''; ...
+                content: `${user} ${supportMention ? `| ${supportMention}` : ''}`,
                 embeds: [ticketEmbed],
                 components: [ticketButtons]
             });
@@ -190,7 +201,7 @@ class TicketHandler {
                 categoryInfo.requirements.map(req => `• ${req}`).join('\n') + '\n\n' +
                 `*Response time may vary. Please be patient.*`
             )
-            .setColor(config.colors.primary)
+            .setColor(config.colors.danger)
             .setThumbnail(user.displayAvatarURL({ dynamic: true }))
             .addFields([
                 {
@@ -466,7 +477,7 @@ class TicketHandler {
                 { name: 'Closed by', value: closerMention, inline: true },
                 { name: 'Ticket', value: ticketId ? `#${ticketId}` : 'Unknown', inline: true }
             ])
-            .setColor(config.colors.secondary)
+            .setColor(config.colors.primary)
             .setTimestamp();
 
         try {
