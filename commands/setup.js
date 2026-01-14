@@ -1,10 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const config = require('../config.json');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('setup')
-        .setDescription('🔧 Configurar el bot de tickets de Plug Market')
+        .setDescription('🔧 Configurar el bot de tickets de Max Market')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('info')
@@ -47,7 +47,7 @@ module.exports = {
         const logChannel = guild.channels.cache.get(config.logChannel);
 
         const embed = new EmbedBuilder()
-            .setTitle('🔧 Configuración de Plug Market Tickets')
+            .setTitle('🔧 Configuración de Max Market Tickets')
             .setDescription('Estado actual de la configuración del bot:')
             .addFields([
                 {
@@ -83,7 +83,7 @@ module.exports = {
             ])
             .setColor(config.colors.primary)
             .setFooter({
-                text: 'Para cambiar la configuración, edita el archivo config.json',
+                text: 'Para cambiar la configuración, edita el archivo config',
                 iconURL: interaction.client.user.displayAvatarURL()
             })
             .setTimestamp();

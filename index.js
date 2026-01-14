@@ -9,7 +9,7 @@ let config;
 if (process.env.NODE_ENV === 'production') {
     config = require('./config-production.js');
 } else {
-    config = require('./config.json');
+    config = require('./config');
 }
 
 // Crear cliente de Discord

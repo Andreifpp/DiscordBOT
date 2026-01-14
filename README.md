@@ -1,6 +1,6 @@
-# 🏪 Plug Market Tickets Bot
+# 🏪 Max Market Tickets Bot
 
-Un bot de Discord avanzado para manejar tickets de soporte, inspirado en el sistema Nebula Tickets pero personalizado para Plug Market.
+Un bot de Discord avanzado para manejar tickets de soporte, inspirado en el sistema Nebula Tickets pero personalizado para Max Market.
 
 ## ✨ Características
 
@@ -9,7 +9,7 @@ Un bot de Discord avanzado para manejar tickets de soporte, inspirado en el sist
 - 🔒 Sistema de permisos robusto
 - 📊 Logs de actividad completos
 - 🛠️ Fácil configuración y personalización
-- 💜 Diseño inspirado en Plug Market
+- 💜 Diseño inspirado en Max Market
 
 ### 📋 Categorías de Tickets
 
@@ -34,7 +34,7 @@ Un bot de Discord avanzado para manejar tickets de soporte, inspirado en el sist
    npm install
    ```
 
-3. **Configura el archivo `config.json`:**
+3. **Configura el archivo `config`:**
    ```json
    {
      "token": "TU_TOKEN_DEL_BOT",
@@ -61,7 +61,7 @@ Un bot de Discord avanzado para manejar tickets de soporte, inspirado en el sist
 
 1. Activa el **Modo Desarrollador** en Discord (Configuración > Avanzado > Modo Desarrollador)
 2. Haz clic derecho en los elementos y selecciona **Copiar ID**
-3. Pega los IDs en el archivo `config.json`
+3. Pega los IDs en el archivo `config`
 
 ### 4. Configurar Permisos del Bot
 
@@ -117,7 +117,7 @@ Prueba la configuración del bot y reporta problemas.
 
 ### Colores
 
-Puedes cambiar los colores en `config.json`:
+Puedes cambiar los colores en `config`:
 
 ```json
 "colors": {
@@ -131,7 +131,7 @@ Puedes cambiar los colores en `config.json`:
 
 ### Emojis
 
-Personaliza los emojis en `config.json`:
+Personaliza los emojis en `config`:
 
 ```json
 "emojis": {
@@ -179,7 +179,7 @@ Para personalizar las imágenes en los embeds:
 ## 📊 Estructura del Proyecto
 
 ```
-Plug Market Tickets/
+Max Market Tickets/
 ├── commands/
 │   ├── ticket.js       # Comando principal de tickets
 │   └── setup.js        # Comandos de configuración
@@ -190,7 +190,7 @@ Plug Market Tickets/
 │   └── ticketHandler.js # Lógica principal de tickets
 ├── utils/
 │   └── utils.js        # Utilidades y funciones helper
-├── config.json         # Configuración del bot
+├── config         # Configuración del bot
 ├── package.json        # Dependencias del proyecto
 ├── deploy-commands.js  # Script para registrar comandos
 ├── index.js           # Archivo principal del bot
@@ -204,14 +204,14 @@ Si tienes problemas con el bot:
 1. Revisa este README completo
 2. Usa `/setup test` para diagnosticar
 3. Revisa la consola para errores
-4. Verifica que todos los IDs en `config.json` sean correctos
+4. Verifica que todos los IDs en `config` sean correctos
 
 ## 📝 Créditos
 
 - Inspirado en el diseño de Nebula Tickets
-- Creado para Plug Market
+- Creado para Max Market
 - Desarrollado con Discord.js v14
 
 ---
 
-**¡Disfruta tu nuevo sistema de tickets para Plug Market! 🏪✨**
+**¡Disfruta tu nuevo sistema de tickets para Max Market! 🏪✨**

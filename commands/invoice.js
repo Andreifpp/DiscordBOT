@@ -1,5 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const config = require('../config.json');
+const config = {
+  // si necesitas un canal/rol/etc, léelo de env también
+  // INVOICE_CHANNEL_ID: process.env.INVOICE_CHANNEL_ID,
+};
 
 function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
     const controller = new AbortController();
@@ -165,7 +168,7 @@ function buildInvoiceEmbed(invoice, interaction) {
         }
     }
 
-    e.setFooter({ text: 'Plug Market • Invoice Lookup', iconURL: interaction.client.user.displayAvatarURL() });
+    e.setFooter({ text: 'Max Market • Invoice Lookup', iconURL: interaction.client.user.displayAvatarURL() });
     
     // Botones de acción
     const seeItemsBtn = new ButtonBuilder()
@@ -214,7 +217,7 @@ module.exports = {
         } catch (err) {
             console.error('Invoice lookup error:', err);
             const msg = err?.message?.includes('No billing backend configured')
-                ? '❌ Backend de facturas no configurado. Agrega `supabaseUrl`/`supabaseKey` o `invoicesApiUrl` en config.json.'
+                ? '❌ Backend de facturas no configurado. Agrega `supabaseUrl`/`supabaseKey` o `invoicesApiUrl` en config.'
                 : `❌ Error consultando la orden: ${err.message}`;
             await interaction.editReply({ content: msg });
         }

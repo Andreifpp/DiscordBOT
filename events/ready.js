@@ -1,5 +1,5 @@
 const { Events, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
-const config = require('../config.json');
+const config = require('../config');
 
 module.exports = {
     name: Events.ClientReady,
@@ -27,7 +27,7 @@ module.exports = {
 
 async function sendTicketPanel(client) {
     try {
-        // Usar el canal configurado en config.json
+        // Usar el canal configurado en config
         const TICKET_PANEL_CHANNEL_ID = config.ticketPanelChannel;
         
         if (!TICKET_PANEL_CHANNEL_ID) {

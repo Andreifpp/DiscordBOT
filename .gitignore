@@ -58,7 +58,7 @@ typings/
 .env
 
 # Config file with sensitive data
-config.json
+config
 
 # VS Code settings
 .vscode/

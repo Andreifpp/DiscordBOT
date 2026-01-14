@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const config = require('../config.json');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -39,7 +39,7 @@ module.exports = {
                 { name: '👤 Staff', value: interaction.user.toString(), inline: true },
                 { name: '📝 Account / Credentials', value: `\`\`\`\n${credentials}\n\`\`\``, inline: false }
             )
-            .setFooter({ text: 'Plug Market • Replacement System', iconURL: interaction.client.user.displayAvatarURL() })
+            .setFooter({ text: 'Max Market • Replacement System', iconURL: interaction.client.user.displayAvatarURL() })
             .setTimestamp();
 
         // Enviar en el canal público (visible para todos)
