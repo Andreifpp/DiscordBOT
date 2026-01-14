@@ -53,7 +53,7 @@ class TicketHandler {
   if (!member) return false;
 
   // ✅ Admin siempre puede
-  if (member.permissions?.has(PermissionFlagsBits.Administrator)) return true;
+    if (member.permissions && member.permissions.has(PermissionFlagsBits.Administrator)) return true;
 
   // ✅ Rol permitido (incluye soporte)
   return member.roles.cache.some(r => ALLOWED_CLOSE_ROLES.has(String(r.id)));
@@ -68,13 +68,14 @@ class TicketHandler {
         const slug = this.slugify(user.username);
         const channelName = `ticket-${slug || user.id.slice(-4)}`;
 
-        // Preflight: ensure the bot has the permissions it needs
-        const me = guild.members.me ?? (await guild.members.fetchMe().catch(() => null));
+    // Preflight: ensure the bot has the permissions it needs
+    // Compat for older Node versions: avoid nullish coalescing
+    const _me = guild.members.me || (await guild.members.fetchMe().catch(() => null));
         const missingPerms = [];
-        if (!me || !me.permissions.has(PermissionFlagsBits.ManageChannels)) {
+        if (!_me || !_me.permissions.has(PermissionFlagsBits.ManageChannels)) {
             missingPerms.push('Manage Channels');
         }
-        if (!me || !me.permissions.has(PermissionFlagsBits.ViewChannel)) {
+        if (!_me || !_me.permissions.has(PermissionFlagsBits.ViewChannel)) {
             missingPerms.push('View Channels');
         }
         if (missingPerms.length) {
@@ -101,7 +102,7 @@ class TicketHandler {
         try {
             // Obtener la categoría de tickets
             const ticketCategory = guild.channels.cache.get(config.ticketsCategory);
-            const permsInParent = ticketCategory ? me?.permissionsIn(ticketCategory) : null;
+            const permsInParent = ticketCategory ? (_me ? _me.permissionsIn(ticketCategory) : null) : null;
             
             // Si no es una categoría válida, crear canal sin categoría
             const channelOptions = {
@@ -145,7 +146,7 @@ class TicketHandler {
             // Solo añadir parent si es una categoría válida
             if (ticketCategory && ticketCategory.type === 4) { // 4 = CategoryChannel
                 // Verificar permisos dentro de la categoría
-                if (permsInParent?.has(PermissionFlagsBits.ManageChannels) && permsInParent?.has(PermissionFlagsBits.ViewChannel)) {
+                if (permsInParent && permsInParent.has(PermissionFlagsBits.ManageChannels) && permsInParent.has(PermissionFlagsBits.ViewChannel)) {
                     channelOptions.parent = ticketCategory;
                 } else {
                     console.warn('El bot no tiene permisos suficientes en la categoría de tickets; se creará el canal sin categoría.');
@@ -185,7 +186,7 @@ await ticketChannel.send({
         } catch (error) {
             console.error('Error creando ticket:', error);
             await interaction.editReply({
-                content: `❌ There was an error creating your ticket. ${error?.code === 50013 ? 'Missing Permissions: make sure my role has Manage Channels and is above the category.' : ''}`
+                content: `❌ There was an error creating your ticket. ${(error && error.code) === 50013 ? 'Missing Permissions: make sure my role has Manage Channels and is above the category.' : ''}`
             });
         }
     }
@@ -311,9 +312,20 @@ await ticketChannel.send({
         });
 
         // Intentar enviar solicitud de review al creador del ticket
-        const userId = channel.topic?.match(/\((\d+)\)/)?.[1];
-        const ticketOwner = userId ? await interaction.client.users.fetch(userId).catch(() => null) : null;
-        const categoryFromTopic = channel.topic?.match(/Category:\s([^)]*)$/)?.[1]?.trim() || 'Unknown';
+        // Extract ticket owner id from channel topic safely (no optional chaining for older Node)
+        let ticketOwner = null;
+        let userId = null;
+        if (channel.topic) {
+            const topicMatch = channel.topic.match(/\((\d+)\)/);
+            userId = topicMatch && topicMatch[1] ? topicMatch[1] : null;
+            ticketOwner = userId ? await interaction.client.users.fetch(userId).catch(() => null) : null;
+        }
+
+        let categoryFromTopic = 'Unknown';
+        if (channel.topic) {
+            const catMatch = channel.topic.match(/Category:\s([^)]*)$/);
+            if (catMatch && catMatch[1]) categoryFromTopic = catMatch[1].trim();
+        }
 
         if (ticketOwner) {
             await this.sendReviewRequest({
@@ -326,10 +338,14 @@ await ticketChannel.send({
 
         // Send log if configured
         if (config.logChannel) {
-            const userId = channel.topic?.match(/\((\d+)\)/)?.[1];
-            if (userId) {
-                const user = await interaction.client.users.fetch(userId).catch(() => null);
-                await this.sendTicketLog(interaction.guild, user, channel, 'unknown', 'closed', interaction.user);
+            // extract userId again safely
+            if (channel.topic) {
+                const tmatch = channel.topic.match(/\((\d+)\)/);
+                const uid = tmatch && tmatch[1] ? tmatch[1] : null;
+                if (uid) {
+                    const user = await interaction.client.users.fetch(uid).catch(() => null);
+                    await this.sendTicketLog(interaction.guild, user, channel, 'unknown', 'closed', interaction.user);
+                }
             }
         }
 

@@ -61,7 +61,7 @@ class InvoiceHandler {
                 return interaction.editReply({ content: `❌ No se encontró la orden.` });
             }
 
-            let items = invoice?.items ?? invoice?.products ?? [];
+            let items = (invoice && invoice.items) ? invoice.items : ((invoice && invoice.products) ? invoice.products : []);
             if (typeof items === 'string') {
                 try { items = JSON.parse(items); } catch (_) { items = []; }
             }
@@ -97,31 +97,31 @@ class InvoiceHandler {
                 }
                 
                 // Construir nombre del producto
-                if (itemObj?.pid && itemObj?.plan) {
+                if (itemObj && itemObj.pid && itemObj.plan) {
                     name = `${itemObj.pid.charAt(0).toUpperCase() + itemObj.pid.slice(1)} ${itemObj.plan}`;
                 } else {
-                    name = itemObj?.name ?? itemObj?.title ?? itemObj?.plan ?? `Item ${idx + 1}`;
+                    name = (itemObj && itemObj.name) ? itemObj.name : ((itemObj && itemObj.title) ? itemObj.title : ((itemObj && itemObj.plan) ? itemObj.plan : `Item ${idx + 1}`));
                 }
                 
                 // Buscar credenciales en itemObj.credentials primero
-                if (itemObj?.credentials && typeof itemObj.credentials === 'object') {
-                    email = itemObj.credentials.email ?? '—';
-                    password = itemObj.credentials.password ?? '—';
+                if (itemObj && itemObj.credentials && typeof itemObj.credentials === 'object') {
+                    email = (itemObj.credentials && itemObj.credentials.email) ? itemObj.credentials.email : '—';
+                    password = (itemObj.credentials && itemObj.credentials.password) ? itemObj.credentials.password : '—';
                     console.log(`[invoice_items] Found credentials in object:`, email, password);
-                } else if (typeof itemObj?.credentials === 'string') {
+                } else if (itemObj && typeof itemObj.credentials === 'string') {
                     // Si credentials es un string JSON, parsearlo
                     try {
                         const creds = JSON.parse(itemObj.credentials);
-                        email = creds.email ?? '—';
-                        password = creds.password ?? '—';
+                        email = (creds && creds.email) ? creds.email : '—';
+                        password = (creds && creds.password) ? creds.password : '—';
                         console.log(`[invoice_items] Parsed credentials from string:`, email, password);
                     } catch {
                         email = '—';
                         password = '—';
                     }
                 } else {
-                    email = itemObj?.email ?? itemObj?.account_email ?? '—';
-                    password = itemObj?.password ?? itemObj?.account_password ?? '—';
+                    email = (itemObj && itemObj.email) ? itemObj.email : ((itemObj && itemObj.account_email) ? itemObj.account_email : '—');
+                    password = (itemObj && itemObj.password) ? itemObj.password : ((itemObj && itemObj.account_password) ? itemObj.account_password : '—');
                     console.log(`[invoice_items] Using fallback credentials:`, email, password);
                 }
 
