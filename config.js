@@ -11,26 +11,50 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
+// Helper: prefer ENV, then fileConfig (both common key variations), then fallback
+const envOrFile = (envNames, fileKeys, fallback) => {
+  for (const n of envNames) if (process.env[n]) return process.env[n];
+  for (const k of fileKeys) if (fileConfig && typeof fileConfig[k] !== 'undefined') return fileConfig[k];
+  return fallback;
+};
+
 module.exports = {
   // Token: SIEMPRE desde ENV en producción
-  token: process.env.TOKEN || fileConfig.token,
+  token: envOrFile(['TOKEN'], ['token'], null),
 
-  // IDs / roles / canales
-  guildId: process.env.GUILD_ID || fileConfig.guildId,
-  supportRoleId: process.env.SUPPORT_ROLE_ID || fileConfig.supportRoleId,
-  ticketCategoryId: process.env.TICKET_CATEGORY_ID || fileConfig.ticketCategoryId,
-  logChannelId: process.env.LOG_CHANNEL_ID || fileConfig.logChannelId,
+  // IDs / roles / canales (mapeamos variantes usadas en el repo)
+  guildId: envOrFile(['GUILD_ID'], ['guildId', 'guild'], null),
+  // Support role may be named supportRole, supportRoleId or SUPPORT_ROLE_ID
+  supportRoleId: envOrFile(['SUPPORT_ROLE_ID', 'SUPPORTROLEID'], ['supportRoleId', 'supportRole', 'support_role', 'supportRoleID'], null),
+  // Category id may be called ticketsCategory, ticketCategoryId, TICKET_CATEGORY_ID, etc.
+  ticketsCategory: envOrFile(['TICKETS_CATEGORY', 'TICKET_CATEGORY_ID', 'TICKETSCATEGORY'], ['ticketsCategory', 'ticketCategoryId', 'ticketCategory'], null),
+  // Log / review channels
+  logChannel: envOrFile(['LOG_CHANNEL_ID', 'LOG_CHANNEL'], ['logChannel', 'log_channel', 'logChannelId'], null),
+  reviewChannel: envOrFile(['REVIEW_CHANNEL_ID', 'REVIEW_CHANNEL'], ['reviewChannel'], null),
 
   // Invoices / Supabase (si aplica)
-  supabaseUrl: process.env.SUPABASE_URL || fileConfig.supabaseUrl,
-  supabaseKey: process.env.SUPABASE_KEY || fileConfig.supabaseKey,
-  supabaseTable: process.env.SUPABASE_TABLE || fileConfig.supabaseTable || 'invoices',
-  invoicesApiUrl: process.env.INVOICES_API_URL || fileConfig.invoicesApiUrl,
+  supabaseUrl: envOrFile(['SUPABASE_URL'], ['supabaseUrl'], null),
+  supabaseKey: envOrFile(['SUPABASE_KEY'], ['supabaseKey'], null),
+  supabaseTable: envOrFile(['SUPABASE_TABLE'], ['supabaseTable'], 'invoices'),
+  invoicesApiUrl: envOrFile(['INVOICES_API_URL'], ['invoicesApiUrl', 'invoicesApi'], null),
 
-  // Colores (para que no crashee el embed)
-  colors: {
-    primary: process.env.PRIMARY_COLOR || (fileConfig.colors && fileConfig.colors.primary) || '#9d4edd',
-    success: process.env.SUCCESS_COLOR || (fileConfig.colors && fileConfig.colors.success) || '#2ecc71',
-    danger: process.env.DANGER_COLOR || (fileConfig.colors && fileConfig.colors.danger) || '#e74c3c',
-  },
+  // Allowed roles list (accepts array in fileConfig or comma-separated env)
+  allowedCloseRoles: (() => {
+    const env = envOrFile(['ALLOWED_CLOSE_ROLES'], [], null);
+    if (env && typeof env === 'string') return env.split(',').map(s => s.trim()).filter(Boolean);
+    if (Array.isArray(fileConfig.allowedCloseRoles)) return fileConfig.allowedCloseRoles;
+    return [];
+  })(),
+
+  // Colores (para que no crashee el embed). Aceptamos varias claves y garantizamos 'error' y 'danger'
+  colors: (() => {
+    const fc = fileConfig.colors || {};
+    const primary = envOrFile(['PRIMARY_COLOR'], ['colors.primary', 'primary', 'colors_primary'], '#9d4edd');
+    const success = envOrFile(['SUCCESS_COLOR'], ['colors.success', 'success'], '#2ecc71');
+    const danger = envOrFile(['DANGER_COLOR'], ['colors.danger', 'danger'], null) || fc.danger || fc.error || '#e74c3c';
+    const error = envOrFile(['ERROR_COLOR'], ['colors.error', 'error'], null) || fc.error || fc.danger || danger;
+    const warning = envOrFile(['WARNING_COLOR'], ['colors.warning', 'warning'], fc.warning || '#ffd166');
+    const secondary = envOrFile(['SECONDARY_COLOR'], ['colors.secondary', 'secondary'], fc.secondary || '#c77dff');
+    return { primary, success, danger, error, warning, secondary };
+  })(),
 };
