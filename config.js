@@ -24,6 +24,8 @@ module.exports = {
 
   // IDs / roles / canales (mapeamos variantes usadas en el repo)
   guildId: envOrFile(['GUILD_ID'], ['guildId', 'guild'], null),
+  // Application / client id (used to register commands)
+  clientId: envOrFile(['CLIENT_ID', 'APPLICATION_ID'], ['clientId', 'applicationId'], null),
   // Support role may be named supportRole, supportRoleId or SUPPORT_ROLE_ID
   supportRoleId: envOrFile(['SUPPORT_ROLE_ID', 'SUPPORTROLEID'], ['supportRoleId', 'supportRole', 'support_role', 'supportRoleID'], null),
   // Category id may be called ticketsCategory, ticketCategoryId, TICKET_CATEGORY_ID, etc.
@@ -37,6 +39,9 @@ module.exports = {
   supabaseKey: envOrFile(['SUPABASE_KEY'], ['supabaseKey'], null),
   supabaseTable: envOrFile(['SUPABASE_TABLE'], ['supabaseTable'], 'invoices'),
   invoicesApiUrl: envOrFile(['INVOICES_API_URL'], ['invoicesApiUrl', 'invoicesApi'], null),
+  sellauthApiKey: process.env.SELLAUTH_API_KEY || fileConfig.sellauthApiKey,
+  sellauthShopId: process.env.SELLAUTH_SHOP_ID || fileConfig.sellauthShopId,
+
 
   // Allowed roles list (accepts array in fileConfig or comma-separated env)
   allowedCloseRoles: (() => {

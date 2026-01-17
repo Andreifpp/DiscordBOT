@@ -24,6 +24,7 @@ function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
  *  - SELLAUTH_SHOP_ID
  */
 async function fetchSellAuthInvoice(invoiceId) {
+  console.log('[fetchSellAuthInvoice] invoiceId=', invoiceId);
   const apiKey = config.sellauthApiKey || process.env.SELLAUTH_API_KEY;
   const shopId = config.sellauthShopId || process.env.SELLAUTH_SHOP_ID;
 
@@ -280,7 +281,19 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const invoiceId = interaction.options.getString('invoice_id');
+    let invoiceId = interaction.options.getString('invoice_id');
+    // Fallback: if the registered option name differs or is missing, try to grab the first provided option
+    if (!invoiceId) {
+      try {
+        const opts = interaction.options && Array.isArray(interaction.options.data) ? interaction.options.data : null;
+        if (opts && opts.length > 0 && typeof opts[0].value === 'string') {
+          invoiceId = String(opts[0].value);
+          console.warn('[invoice] invoice_id option was empty; falling back to first option value:', invoiceId);
+        }
+      } catch (e) {
+        console.warn('[invoice] error while extracting fallback invoice id from options:', e);
+      }
+    }
 
     // Responder públicamente (defensivo: capturamos errores en deferReply para evitar Unknown interaction)
     try {
@@ -306,6 +319,9 @@ module.exports = {
     }
 
     try {
+      if (!invoiceId) {
+        return interaction.editReply({ content: `❌ No se proporcionó un Invoice ID válido.` });
+      }
       const invoice = await fetchInvoiceByOrderId(invoiceId);
       if (!invoice) {
         return interaction.editReply({ content: `❌ No se encontró información para: ${invoiceId}` });
