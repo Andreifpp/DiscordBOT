@@ -1,3 +1,62 @@
+async execute(interaction) {
+  // 🔴 1) deferReply INMEDIATO (para evitar 10062)
+  try {
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
+  } catch (e) {
+    console.error('deferReply failed (interaction expired):', e);
+    return;
+  }
+
+  // 🔵 2) obtener invoice id
+  const invoiceId = interaction.options.getString('invoice_id');
+
+  // 🟡 3) VALIDACIÓN DE BACKEND (AQUÍ VA EL APARTADO 3)
+  const hasSellAuth =
+    (config.sellauthApiKey || process.env.SELLAUTH_API_KEY) &&
+    (config.sellauthShopId || process.env.SELLAUTH_SHOP_ID);
+
+  const hasSupabase =
+    (config.supabaseUrl || process.env.SUPABASE_URL) &&
+    (config.supabaseKey || process.env.SUPABASE_KEY);
+
+  const hasCustomApi =
+    config.invoicesApiUrl || process.env.INVOICES_API_URL;
+
+  if (!hasSellAuth && !hasSupabase && !hasCustomApi) {
+    return interaction.editReply({
+      content:
+        '❌ Backend de facturas no configurado.\n' +
+        'Configura **SELLAUTH_API_KEY** y **SELLAUTH_SHOP_ID** en Render.'
+    });
+  }
+
+  // 🟢 4) llamada real a la API
+  try {
+    const invoice = await fetchInvoiceByOrderId(invoiceId);
+
+    if (!invoice) {
+      return interaction.editReply({
+        content: `❌ No se encontró información para la factura **${invoiceId}**`
+      });
+    }
+
+    const invoiceData = buildInvoiceEmbed(invoice, interaction);
+    await interaction.editReply({
+      embeds: [invoiceData.embed],
+      components: [invoiceData.buttons]
+    });
+  } catch (err) {
+    console.error('Invoice lookup error:', err);
+
+    await interaction.editReply({
+      content: `❌ Error consultando la factura: ${err.message || 'Unknown error'}`
+    });
+  }
+}
+
+
 // commands/invoice.js
 const {
   SlashCommandBuilder,
@@ -9,7 +68,7 @@ const {
 
 const config = require('../config');
 
-function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(t));
