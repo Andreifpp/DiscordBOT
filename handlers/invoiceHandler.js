@@ -1,4 +1,4 @@
-const { EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
 const config = require('../config');
 
 // small fetch helper with timeout
@@ -122,11 +122,16 @@ class InvoiceHandler {
         await interaction.deferReply({ ephemeral: true });
 
         try {
-            const invoice = await fetchInvoiceByOrderId(orderId);
-            
-            if (!invoice) {
-                return interaction.editReply({ content: `❌ No se encontró la orden.` });
-            }
+                const invoice = await fetchInvoiceByOrderId(orderId);
+
+                if (!invoice) {
+                    return interaction.editReply({ content: `❌ No se encontró la orden.` });
+                }
+
+                // Determine if the user is staff (allowed to view sensitive credentials)
+                const member = interaction.member;
+                const allowedRoles = config.allowedCloseRoles || [];
+                const isStaff = Boolean(member && (member.permissions && member.permissions.has && member.permissions.has(PermissionFlagsBits.Administrator)) || (member && member.roles && member.roles.cache && (member.roles.cache.has(config.supportRoleId) || member.roles.cache.some(r => allowedRoles.includes(String(r.id))))));
 
             let items = (invoice && invoice.items) ? invoice.items : ((invoice && invoice.products) ? invoice.products : []);
             if (typeof items === 'string') {
@@ -174,14 +179,14 @@ class InvoiceHandler {
                 if (itemObj && itemObj.credentials && typeof itemObj.credentials === 'object') {
                     email = (itemObj.credentials && itemObj.credentials.email) ? itemObj.credentials.email : '—';
                     password = (itemObj.credentials && itemObj.credentials.password) ? itemObj.credentials.password : '—';
-                    console.log(`[invoice_items] Found credentials in object:`, email, password);
+                    console.log(`[invoice_items] Found credentials in object:`, email ? '***' : '-', password ? '***' : '-');
                 } else if (itemObj && typeof itemObj.credentials === 'string') {
                     // Si credentials es un string JSON, parsearlo
                     try {
                         const creds = JSON.parse(itemObj.credentials);
                         email = (creds && creds.email) ? creds.email : '—';
                         password = (creds && creds.password) ? creds.password : '—';
-                        console.log(`[invoice_items] Parsed credentials from string:`, email, password);
+                        console.log(`[invoice_items] Parsed credentials from string:`, email ? '***' : '-', password ? '***' : '-');
                     } catch {
                         email = '—';
                         password = '—';
@@ -189,12 +194,16 @@ class InvoiceHandler {
                 } else {
                     email = (itemObj && itemObj.email) ? itemObj.email : ((itemObj && itemObj.account_email) ? itemObj.account_email : '—');
                     password = (itemObj && itemObj.password) ? itemObj.password : ((itemObj && itemObj.account_password) ? itemObj.account_password : '—');
-                    console.log(`[invoice_items] Using fallback credentials:`, email, password);
+                    console.log(`[invoice_items] Using fallback credentials:`, email ? '***' : '-', password ? '***' : '-');
                 }
+
+                // Hide credentials from non-staff users for privacy
+                const emailDisplay = isStaff ? (email || '—') : (email ? '🔒 Hidden (staff only)' : '—');
+                const passDisplay = isStaff ? (password || '—') : (password ? '🔒 Hidden (staff only)' : '—');
 
                 embed.addFields({
                     name: `${idx + 1}. ${name}`,
-                    value: `📧 Email: \`${email}\`\n🔑 Password: \`${password}\``,
+                    value: `📧 Email: \`${emailDisplay}\`\n🔑 Password: \`${passDisplay}\``,
                     inline: false
                 });
             });
