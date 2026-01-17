@@ -27,7 +27,10 @@ async function fetchSellAuthInvoice(invoiceId) {
   const apiKey = config.sellauthApiKey || process.env.SELLAUTH_API_KEY;
   const shopId = config.sellauthShopId || process.env.SELLAUTH_SHOP_ID;
 
-  if (!apiKey || !shopId) return null;
+  if (!apiKey || !shopId) {
+    console.warn('[fetchSellAuthInvoice] SellAuth not configured. Missing API key or Shop ID.');
+    return null;
+  }
 
   const url = `https://api.sellauth.com/v1/shops/${shopId}/invoices/${encodeURIComponent(invoiceId)}`;
   const res = await fetchWithTimeout(url, {
@@ -39,6 +42,8 @@ async function fetchSellAuthInvoice(invoiceId) {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
+    // Log para depuración (no imprimir API key)
+    console.warn(`[fetchSellAuthInvoice] SellAuth API responded ${res.status} ${res.statusText} for invoice ${invoiceId}`);
     // 404 -> no existe
     if (res.status === 404) return null;
     throw new Error(`SellAuth API error ${res.status}: ${text || res.statusText}`);
