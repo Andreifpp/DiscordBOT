@@ -282,8 +282,28 @@ module.exports = {
   async execute(interaction) {
     const invoiceId = interaction.options.getString('invoice_id');
 
-    // Responder públicamente
-    await interaction.deferReply();
+    // Responder públicamente (defensivo: capturamos errores en deferReply para evitar Unknown interaction)
+    try {
+      await interaction.deferReply();
+    } catch (deferErr) {
+      console.error('[invoice] deferReply failed:', deferErr && deferErr.code ? deferErr.code : deferErr);
+      // Intentar notificar al usuario de forma segura
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({ content: '❌ No pude procesar la interacción a tiempo. Intenta de nuevo.', ephemeral: true });
+        }
+      } catch (replyErr) {
+        console.warn('[invoice] fallback reply failed:', replyErr && replyErr.code ? replyErr.code : replyErr);
+        try {
+          if (interaction.channel && interaction.channel.send) {
+            await interaction.channel.send('❌ No pude procesar tu interacción. Intenta de nuevo.');
+          }
+        } catch (chanErr) {
+          console.error('[invoice] channel fallback failed:', chanErr && chanErr.code ? chanErr.code : chanErr);
+        }
+      }
+      return;
+    }
 
     try {
       const invoice = await fetchInvoiceByOrderId(invoiceId);
