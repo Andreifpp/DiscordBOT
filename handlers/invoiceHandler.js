@@ -1,11 +1,62 @@
 const { EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const config = require('../config');
 
+// small fetch helper with timeout
+function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(new Error('timeout')), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(t));
+}
+
+async function fetchSellAuthInvoice(invoiceId) {
+    // prefer config keys
+    const apiKey = config.sellauthApiKey || process.env.SELLAUTH_API_KEY;
+    const shopId = config.sellauthShopId || process.env.SELLAUTH_SHOP_ID;
+
+    if (!apiKey || !shopId) {
+        console.warn('[fetchSellAuthInvoice] SellAuth not configured.');
+        return null;
+    }
+
+    const url = `https://api.sellauth.com/v1/shops/${shopId}/invoices/${encodeURIComponent(invoiceId)}`;
+    const res = await fetchWithTimeout(url, {
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            Accept: 'application/json'
+        }
+    });
+
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.warn(`[fetchSellAuthInvoice] SellAuth API responded ${res.status} ${res.statusText} for invoice ${invoiceId}`);
+        if (res.status === 404) return null;
+        throw new Error(`SellAuth API error ${res.status}: ${text || res.statusText}`);
+    }
+
+    const data = await res.json().catch(() => null);
+    const inv = data?.data ?? data;
+
+    return {
+        id: inv?.id ?? inv?.invoice_id ?? invoiceId,
+        status: inv?.status ?? inv?.state ?? 'Unknown',
+        email: inv?.email ?? inv?.buyer_email ?? inv?.customer_email ?? inv?.customer?.email ?? '—',
+        created_at: inv?.created_at ?? inv?.createdAt ?? inv?.created ?? null,
+        completed_at: inv?.completed_at ?? inv?.completedAt ?? inv?.completed ?? null,
+        total_price: inv?.total_price ?? inv?.total ?? inv?.amount ?? inv?.price ?? null,
+        total_paid: inv?.total_paid ?? inv?.paid ?? null,
+        items: inv?.items ?? inv?.invoice_items ?? inv?.products ?? [],
+        replace: inv?.replace ?? inv?.is_replacement ?? 'No',
+        raw: inv
+    };
+}
+
 async function fetchInvoiceByOrderId(orderId) {
     const supabaseUrl = config.supabaseUrl || process.env.SUPABASE_URL;
     const supabaseKey = config.supabaseKey || process.env.SUPABASE_KEY;
     const supabaseTable = config.supabaseTable || process.env.SUPABASE_TABLE || 'orders';
+    const invoicesApiUrl = config.invoicesApiUrl || process.env.INVOICES_API_URL;
 
+    // 1) Supabase
     if (supabaseUrl && supabaseKey) {
         const headers = {
             apikey: supabaseKey,
@@ -14,7 +65,7 @@ async function fetchInvoiceByOrderId(orderId) {
         };
 
         let url = `${supabaseUrl}/rest/v1/${supabaseTable}?short_id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`;
-        let res = await fetch(url, { headers });
+        let res = await fetchWithTimeout(url, { headers });
         if (res.ok) {
             const rows = await res.json();
             if (Array.isArray(rows) && rows[0]) return rows[0];
@@ -22,14 +73,30 @@ async function fetchInvoiceByOrderId(orderId) {
 
         if (orderId.includes('-')) {
             url = `${supabaseUrl}/rest/v1/${supabaseTable}?id=eq.${encodeURIComponent(orderId)}&select=*&limit=1`;
-            res = await fetch(url, { headers });
+            res = await fetchWithTimeout(url, { headers });
             if (res.ok) {
                 const rows = await res.json();
                 if (Array.isArray(rows) && rows[0]) return rows[0];
             }
         }
+        return null;
     }
-    return null;
+
+    // 2) API propia
+    if (invoicesApiUrl) {
+        const url = `${invoicesApiUrl}?order_id=${encodeURIComponent(orderId)}`;
+        const res = await fetchWithTimeout(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`API error (${res.status})`);
+        const data = await res.json();
+        return data?.invoice ?? data;
+    }
+
+    // 3) SellAuth
+    const sellAuthInvoice = await fetchSellAuthInvoice(orderId);
+    if (sellAuthInvoice) return sellAuthInvoice;
+
+    // Nothing configured
+    throw new Error('No billing backend configured. Set SUPABASE_URL/SUPABASE_KEY, INVOICES_API_URL, or SELLAUTH_API_KEY + SELLAUTH_SHOP_ID.');
 }
 
 class InvoiceHandler {
